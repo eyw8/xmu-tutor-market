@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  PARENT
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique
+  passwordHash String
+  role         Role
+  email        String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentProfile   StudentProfile?
+  parentProfile    ParentProfile?
+  tutorProfile     TutorProfile?
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+}
+
+model StudentProfile {
+  userId        String  @id
+  college       String
+  major         String
+  grade         Int
+  verifiedEmail String? @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ParentProfile {
+  userId     String @id
+  childGrade Int
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests TutoringRequest[]
+}
+
+model TutorProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  college        String
+  major          String
+  grade          Int
+  subjects       String[]
+  pricePerHour   Float
+  availableTimes Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TutoringRequest {
+  id             String   @id @default(cuid())
+  parentId       String
+  childGrade     Int
+  subject        String
+  budgetMin      Float
+  budgetMax      Float
+  timePreference Json
+  region         String
+  status         String   @default("OPEN")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  parent ParentProfile @relation(fields: [parentId], references: [userId], onDelete: Cascade)
+
+  @@index([subject, region])
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId, createdAt])
+}
+
+model ContactExchange {
+  id          String   @id @default(cuid())
+  requesterId String
+  responderId String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([requesterId, responderId])
+}
