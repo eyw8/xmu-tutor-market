@@ -19,3 +19,6 @@ _codex*
 _task.txt
 *.tmp
 *.log
+
+# TS 增量编译缓存
+*.tsbuildinfo
